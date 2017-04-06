@@ -79,6 +79,7 @@ namespace MonoDevelop.Projects.MSBuild
 			public string Value;
 			public string FinalValue;
 			public bool IsImported;
+			public bool DefinedMultipleTimes;
 		}
 
 		class GlobInfo
@@ -195,7 +196,7 @@ namespace MonoDevelop.Projects.MSBuild
 				var context = new MSBuildEvaluationContext ();
 				foreach (var p in pi.GlobalProperties) {
 					context.SetPropertyValue (p.Key, p.Value);
-					pi.Properties [p.Key] = new PropertyInfo { Name = p.Key, Value = p.Value, FinalValue = p.Value };
+					StoreProperty (pi, p.Key, p.Value, p.Value);
 				}
 				//context.Log = new ConsoleMSBuildEngineLogger ();
 				LogBeginEvaluationStage (context, "Evaluating Project: " + pi.Project.FileName);
@@ -964,7 +965,7 @@ namespace MonoDevelop.Projects.MSBuild
 				var val = context.Evaluate (prop.UnevaluatedValue, out needsItemEvaluation);
 				if (needsItemEvaluation)
 					context.SetPropertyNeedsTransformEvaluation (prop.Name);
-				project.Properties [prop.Name] = new PropertyInfo { Name = prop.Name, Value = prop.UnevaluatedValue, FinalValue = val };
+				StoreProperty (project, prop.Name, prop.UnevaluatedValue, val);
 				context.SetPropertyValue (prop.Name, val);
 			}
 		}
@@ -1139,6 +1140,11 @@ namespace MonoDevelop.Projects.MSBuild
 
 			foreach (var p in prefProject.Properties) {
 				p.Value.IsImported = true;
+
+				// If the importer project already has a value for this property, flag it as defined multiple times
+				if (project.Properties.ContainsKey (p.Key))
+					p.Value.DefinedMultipleTimes = true;
+				
 				project.Properties [p.Key] = p.Value;
 			}
 		}
@@ -1211,6 +1217,17 @@ namespace MonoDevelop.Projects.MSBuild
 			finally {
 				context.CustomFullDirectoryName = null;
 			}
+		}
+
+		void StoreProperty (ProjectInfo project, string name, string value, string finalValue)
+		{
+			PropertyInfo pi;
+			if (project.Properties.TryGetValue (name, out pi)) {
+				pi.Value = value;
+				pi.FinalValue = finalValue;
+				pi.DefinedMultipleTimes = true;
+			} else
+				project.Properties [name] = new PropertyInfo { Name = name, Value = value, FinalValue = finalValue };
 		}
 
 		public override bool GetItemHasMetadata (object item, string name)
@@ -1286,12 +1303,13 @@ namespace MonoDevelop.Projects.MSBuild
 			imported = it.IsImported;
 		}
 
-		public override void GetPropertyInfo (object property, out string name, out string value, out string finalValue)
+		public override void GetPropertyInfo (object property, out string name, out string value, out string finalValue, out bool definedMultipleTimes)
 		{
 			var prop = (PropertyInfo)property;
 			name = prop.Name;
 			value = prop.Value;
 			finalValue = prop.FinalValue;
+			definedMultipleTimes = prop.DefinedMultipleTimes;
 		}
 
 		public override IEnumerable<MSBuildTarget> GetTargets (object projectInstance)
