@@ -2,11 +2,11 @@
 
 open System
 open System.Collections.Generic
-open System.Collections.Concurrent
 open ExtCore.Control
 open Mono.TextEditor
 open MonoDevelop
 open MonoDevelop.Components
+open MonoDevelop.Components.Commands
 open MonoDevelop.Core
 open MonoDevelop.Ide.Editor
 open MonoDevelop.Ide.Editor.Extension
@@ -41,10 +41,10 @@ type SignatureHelpMarker(document, text, font, line) =
             let y = (editor.LineToY lineNr) - editor.VAdjustment.Value
 
             let currentPoint = g.CurrentPoint
-            g.MoveTo(x, y + editor.LineHeight * (1.0 - SignatureHelpMarker.FontScale))
+            g.MoveTo(x, y + editor.LineHeight * (1.0 - SignatureHelpMarker.FontScale) - 2.0)
             g.ShowLayout layout
             g.MoveTo currentPoint
-
+  
 module signatureHelp =
     let getOffset (editor:TextEditor) (pos:Range.pos) =
         editor.LocationToOffset (pos.Line, pos.Column+1)
@@ -65,17 +65,15 @@ module signatureHelp =
 
         let firstResult x =
             match x with
-            | FSharpToolTipElement.Single (t, _) when not (String.IsNullOrWhiteSpace t) -> Some t
-            | FSharpToolTipElement.Group gs -> List.tryPick (fun (t, _) -> if not (String.IsNullOrWhiteSpace t) then Some t else None) gs
+            | FSharpToolTipElement.Group gs -> gs |> List.tryPick (fun data -> if not (String.IsNullOrWhiteSpace data.MainDescription) then Some data.MainDescription else None)
             | _ -> None
 
         tips
-        |> Seq.sortBy (function FSharpToolTipElement.Single _ -> 0 | _ -> 1)
         |> Seq.tryPick firstResult
         |> Option.map getSignature
         |> Option.fill ""
 
-    let displaySignatures (context:DocumentContext) (editor:TextEditor) =
+    let displaySignatures (context:DocumentContext) (editor:TextEditor) recalculate =
         let data = editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
         let editorFont = data.Options.Font
         let font = new Pango.FontDescription(AbsoluteSize=float(editorFont.Size) * SignatureHelpMarker.FontScale, Family=editorFont.Family)
@@ -90,7 +88,7 @@ module signatureHelp =
             }
 
         ast |> Option.iter (fun (ast, pd) ->
-          if not pd.HasErrors && pd.AllSymbolsKeyed.Count > 0 then
+          if pd.AllSymbolsKeyed.Count > 0 then
             let symbols = pd.AllSymbolsKeyed.Values |> List.ofSeq
             let topVisibleLine = data.HeightTree.YToLineNumber data.VAdjustment.Value
             let bottomVisibleLine = 
@@ -130,48 +128,63 @@ module signatureHelp =
                 lineOption |> Option.iter(fun line ->
                     let marker = editor.GetLineMarkers line |> Seq.tryPick(Option.tryCast<SignatureHelpMarker>)
 
-                    let marker = marker |> Option.getOrElse(fun() -> addMarker "" range.StartLine line)
-                    if range.StartLine >= topVisibleLine && range.EndLine <= bottomVisibleLine then
-                        async {
-                            let lineText = editor.GetLineText(range.StartLine)
-                            let! tooltip = ast.GetToolTip(range.StartLine, range.StartColumn, lineText)
-                            tooltip |> Option.iter(fun (tooltip, lineNr) ->
-                                let text = extractSignature tooltip
-                                marker.Text <- text
-                                marker.Font <- font
-                                document.CommitLineUpdate lineNr)
-                        } |> Async.StartImmediate)))
+                    match marker, recalculate with
+                    | Some marker', false when marker'.Text <> "" -> ()
+                    | _ -> 
+                        let marker = marker |> Option.getOrElse(fun() -> addMarker "" range.StartLine line)
+                        if range.StartLine >= topVisibleLine && range.EndLine <= bottomVisibleLine then
+                            async {
+                                let lineText = editor.GetLineText(range.StartLine)
+                                let! tooltip = ast.GetToolTip(range.StartLine, range.StartColumn, lineText)
+                                tooltip |> Option.iter(fun (tooltip, lineNr) ->
+                                    let text = extractSignature tooltip
+                                    marker.Text <- text
+                                    marker.Font <- font
+                                    runInMainThread (fun() -> document.CommitLineUpdate lineNr))
+                            } |> Async.StartImmediate)))
 
 type SignatureHelp() as x =
     inherit TextEditorExtension()
-    let mutable disposables = None : IDisposable list option
+    let mutable disposables = []
 
     let removeAllMarkers() =
         async {
             let editor = x.Editor
             editor.GetLines() |> Seq.iter(signatureHelp.removeMarkers editor >> ignore)
             let editorData = editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
-            editorData.Document.CommitUpdateAll()
+            signatureHelp.runInMainThread (fun() -> editorData.Document.CommitUpdateAll())
         } |> Async.StartImmediate
-        
+   
+    [<CommandHandler("MonoDevelop.FSharp.SignatureHelp.Toggle")>]
+    member x.SignatureHelpToggle() =
+        let current = PropertyService.Get(Settings.showTypeSignatures, false)
+        PropertyService.Set(Settings.showTypeSignatures, not current)
+
     override x.Initialize() =
-        let displaySignatures dueMs observable =
+        let displaySignatures dueMs recalculate observable =
             observable
             |> Observable.filter(fun _ -> PropertyService.Get(Settings.showTypeSignatures, false))
             |> Observable.throttle (TimeSpan.FromMilliseconds dueMs)
-            |> Observable.subscribe (fun _ -> signatureHelp.displaySignatures x.DocumentContext x.Editor)
-
+            |> Observable.subscribe (fun _ -> signatureHelp.displaySignatures x.DocumentContext x.Editor recalculate)
+        
+        let resetSignatures dueMs recalculate observable =
+            removeAllMarkers()
+            displaySignatures dueMs recalculate observable
+    
         disposables <-
-            Some
-                [x.Editor.VAdjustmentChanged
-                |> Observable.merge x.Editor.ZoomLevelChanged
-                |> displaySignatures 100.
-                ;
-                x.DocumentContext.DocumentParsed
-                |> displaySignatures 1000.
-                ;
-                PropertyService.PropertyChanged
-                    .Subscribe(fun p -> if p.Key = Settings.showTypeSignatures && (not (p.NewValue :?> bool)) then
-                                            removeAllMarkers())]
+            [ x.Editor.VAdjustmentChanged
+              |> displaySignatures 100. false
 
-    override x.Dispose() = disposables |> Option.iter (fun disps -> disps |> List.iter(fun disp -> disp.Dispose()))
+              x.Editor.ZoomLevelChanged
+              |> resetSignatures 100. true
+
+              x.DocumentContext.DocumentParsed
+              |> displaySignatures 1000. true
+
+              PropertyService.PropertyChanged
+                  .Subscribe(fun p -> if p.Key = Settings.showTypeSignatures then
+                                              match (p.NewValue :?> bool) with
+                                              | true -> signatureHelp.displaySignatures x.DocumentContext x.Editor true
+                                              | false -> removeAllMarkers())]
+
+    override x.Dispose() = disposables |> List.iter(fun disp -> disp.Dispose())
