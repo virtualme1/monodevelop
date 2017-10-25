@@ -17,7 +17,7 @@ DEP[0]=md-addins
 DEP_NAME[0]=MDADDINS
 DEP_PATH[0]=${top_srcdir}/../md-addins
 DEP_MODULE[0]=git@github.com:xamarin/md-addins.git
-DEP_NEEDED_VERSION[0]=29be64106c740de7337e1358caf6856c0b7fb145
+DEP_NEEDED_VERSION[0]=28038f71affb9e8a30591ad7e009baaaa3aa737f
 DEP_BRANCH_AND_REMOTE[0]="d15-5-provisioning-ignore-wifi-devices origin/d15-5-provisioning-ignore-wifi-devices"
 
 # heap-shot
