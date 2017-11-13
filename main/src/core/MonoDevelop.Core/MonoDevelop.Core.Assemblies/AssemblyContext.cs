@@ -474,6 +474,8 @@ namespace MonoDevelop.Core.Assemblies
 			
 			//if the asm is not a framework asm, we don't upgrade it automatically
 			if (!fxAsms.Any ()) {
+				Console.WriteLine ("F1:" + fx);
+				Console.WriteLine ("F2:" + asm.Package.TargetFramework);
 				// Return null if the package is not compatible with the requested version
 				if (fx.CanReferenceAssembliesTargetingFramework (asm.Package.TargetFramework))
 					return asm;

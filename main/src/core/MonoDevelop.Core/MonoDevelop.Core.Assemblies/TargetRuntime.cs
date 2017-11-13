@@ -49,7 +49,7 @@ namespace MonoDevelop.Core.Assemblies
 	{
 		HashSet<string> corePackages = new HashSet<string> ();
 		
-		object initLock = new object ();
+		static object initLock = new object ();
 		object initEventLock = new object ();
 		bool initialized;
 		bool initializing;
@@ -387,6 +387,8 @@ namespace MonoDevelop.Core.Assemblies
 				}
 			}
 		}
+
+
 		
 		void BackgroundInitialize (object state)
 		{
@@ -417,6 +419,7 @@ namespace MonoDevelop.Core.Assemblies
 			if (ShuttingDown)
 				return;
 			
+			Console.WriteLine ("=============\nInitializing runtime " + this);
 			timer.Trace ("Finding custom frameworks");
 			var customFrameworksList = new List<TargetFramework> ();
 			try {
@@ -538,7 +541,7 @@ namespace MonoDevelop.Core.Assemblies
 
 		void RegisterSystemAssemblies (TargetFramework fx)
 		{
-			Console.WriteLine ("TargetRuntime.RegisterSystemAssemblies " + fx.Name);
+			Console.WriteLine ("=============\nTargetRuntime.RegisterSystemAssemblies " + fx.Name);
 			Dictionary<string,List<SystemAssembly>> assemblies = new Dictionary<string, List<SystemAssembly>> ();
 			Dictionary<string,SystemPackage> packs = new Dictionary<string, SystemPackage> ();
 			
@@ -628,5 +631,10 @@ namespace MonoDevelop.Core.Assemblies
 			}
 			return null;
 		}
-	}
+
+        public override string ToString()
+        {
+			return this.DisplayName;
+        }
+    }
 }

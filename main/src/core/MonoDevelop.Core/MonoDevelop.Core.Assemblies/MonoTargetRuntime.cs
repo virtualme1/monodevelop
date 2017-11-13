@@ -277,6 +277,7 @@ namespace MonoDevelop.Core.Assemblies
 		
 		protected override void OnInitialize ()
 		{
+			Console.WriteLine ("Initialize framework: " + this);
 			if (!monoRuntimeInfo.IsValidRuntime)
 				return;
 			foreach (string pcfile in GetAllPkgConfigFiles ()) {
