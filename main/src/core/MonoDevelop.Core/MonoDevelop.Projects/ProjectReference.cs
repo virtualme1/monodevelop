@@ -631,9 +631,11 @@ namespace MonoDevelop.Projects
 			if (referenceType == ReferenceType.Package && ownerProject != null) {
 				notFound = false;
 				string cref = AssemblyContext.FindInstalledAssembly (reference, package, ownerProject.TargetFramework);
+				Console.WriteLine ("T1: " + cref);
 				if (cref == null)
 					cref = reference;
 				cref = AssemblyContext.GetAssemblyNameForVersion (cref, package, ownerProject.TargetFramework);
+				Console.WriteLine ("T2: " + cref);
 				notFound = (cref == null);
 				if (cref != null && cref != reference) {
 					SystemAssembly asm = AssemblyContext.GetAssemblyFromFullName (cref, package, ownerProject.TargetFramework);

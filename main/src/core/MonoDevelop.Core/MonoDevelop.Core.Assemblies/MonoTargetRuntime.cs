@@ -252,8 +252,10 @@ namespace MonoDevelop.Core.Assemblies
 
 		public IEnumerable<string> GetAllPkgConfigFiles ()
 		{
+			Console.WriteLine ("GetAllPkgConfigFiles");
 			var packageNames = new HashSet<string> ();
 			foreach (string pcdir in PkgConfigDirs) {
+				Console.WriteLine ("pcdir:" + pcdir);
 				IEnumerable<string> files;
 
 				if (!Directory.Exists (pcdir))
@@ -279,6 +281,7 @@ namespace MonoDevelop.Core.Assemblies
 				return;
 			foreach (string pcfile in GetAllPkgConfigFiles ()) {
 				try {
+					Console.WriteLine ("pcf:" + pcfile);
 					var pc = new FilePath (pcfile).ResolveLinks ();
 					if (!string.IsNullOrEmpty (pc))
 						ParsePCFile (pc);
@@ -305,6 +308,7 @@ namespace MonoDevelop.Core.Assemblies
 			if (RuntimeAssemblyContext.GetPackageInternal (pname) != null || IsCorePackage (pname))
 				return;
 
+			Console.WriteLine ("MonoTargetRuntime.ParsePCFile " + pcfile);
 			LibraryPackageInfo pinfo = PcFileCache.GetPackageInfo (pcfile);
 			if (pinfo.IsValidPackage)
 				RuntimeAssemblyContext.RegisterPackage (pinfo, false);

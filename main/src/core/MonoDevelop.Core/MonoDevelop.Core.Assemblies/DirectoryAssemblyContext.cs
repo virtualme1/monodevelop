@@ -99,6 +99,7 @@ namespace MonoDevelop.Core.Assemblies
 		
 		void RegisterPcFile (string file)
 		{
+			Console.WriteLine ("RegisterPcFile: " + file);
 			LibraryPackageInfo pinfo = MonoTargetRuntime.PcFileCache.GetPackageInfo (file);
 			if (pinfo.IsValidPackage) {
 				SystemPackage sp = RegisterPackage (pinfo, true);

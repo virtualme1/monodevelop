@@ -538,6 +538,7 @@ namespace MonoDevelop.Core.Assemblies
 
 		void RegisterSystemAssemblies (TargetFramework fx)
 		{
+			Console.WriteLine ("TargetRuntime.RegisterSystemAssemblies " + fx.Name);
 			Dictionary<string,List<SystemAssembly>> assemblies = new Dictionary<string, List<SystemAssembly>> ();
 			Dictionary<string,SystemPackage> packs = new Dictionary<string, SystemPackage> ();
 			
@@ -545,6 +546,7 @@ namespace MonoDevelop.Core.Assemblies
 
 			foreach (AssemblyInfo assembly in fx.Assemblies) {
 				foreach (string dir in dirs) {
+					Console.WriteLine ("  dir: " + dir);
 					string file = Path.Combine (dir, assembly.Name) + ".dll";
 					if (File.Exists (file)) {
 						if (assembly.Version == null && IsRunning) {

@@ -72,6 +72,7 @@ namespace MonoDevelop.Core.Assemblies
 		
 		SystemPackage RegisterPackage (SystemPackageInfo pinfo, bool isInternal, PackageAssemblyInfo[] assemblyFiles)
 		{
+			Console.WriteLine ("AssemblyContext.RegisterPackage " + pinfo.Name );
 			//don't allow packages to duplicate framework package names
 			//but multiple framework packages (from different versions) may have the same name
 			SystemPackage oldPackage;
@@ -530,6 +531,8 @@ namespace MonoDevelop.Core.Assemblies
 		{
 			if (!File.Exists (assemblyfile))
 				return null;
+
+			Console.WriteLine ("AssemblyContext.AddAssembly " + assemblyfile);
 
 			try {
 				SystemAssembly asm = SystemAssembly.FromFile (assemblyfile, ainfo);
