@@ -394,9 +394,15 @@ namespace MonoDevelop.Core.Assemblies
 		{
 			TargetFramework commonFramework = null;
 			bool inconsistentFrameworks = false;
+			Console.WriteLine ("StoreCustomData: " + pcfile.Name);
+			var debug = pinfo.Name.Contains ("gtk-sharp-2.0");
+			if (debug)
+				Console.WriteLine ("$$$$ gtk-sharp rt:" + Runtime.SystemAssemblyService.CurrentRuntime.DisplayName);
 			
 			foreach (PackageAssemblyInfo pi in pinfo.Assemblies) {
+				if (debug) Console.WriteLine ("F1: " + pi.File);
 				TargetFrameworkMoniker targetFramework = Runtime.SystemAssemblyService.GetTargetFrameworkForAssembly (Runtime.SystemAssemblyService.CurrentRuntime, pi.File);
+				if (debug) Console.WriteLine ("F2: " + targetFramework);
 				if (commonFramework == null) {
 					commonFramework = Runtime.SystemAssemblyService.GetTargetFramework (targetFramework);
 					if (commonFramework == null)
@@ -404,18 +410,23 @@ namespace MonoDevelop.Core.Assemblies
 				}
 				else if (targetFramework != null) {
 					TargetFramework newfx = Runtime.SystemAssemblyService.GetTargetFramework (targetFramework);
+					if (debug) Console.WriteLine ("F3: " + newfx);
 					if (newfx == null)
 						inconsistentFrameworks = true;
 					else {
 						if (newfx.CanReferenceAssembliesTargetingFramework (commonFramework))
 							commonFramework = newfx;
-						else if (!commonFramework.CanReferenceAssembliesTargetingFramework (newfx))
+						else if (!commonFramework.CanReferenceAssembliesTargetingFramework (newfx)) {
 							inconsistentFrameworks = true;
+							if (debug) Console.WriteLine ("F4");
+						}
 					}
 				}
 				if (inconsistentFrameworks)
 					break;
 			}
+			if (debug) Console.WriteLine ("F5:" + commonFramework);
+			if (debug) Console.WriteLine ("F6:" + commonFramework.Id);
 			if (inconsistentFrameworks)
 				LoggingService.LogError ("Inconsistent target frameworks found in " + pcfile);
 			if (commonFramework != null)

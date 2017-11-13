@@ -332,12 +332,15 @@ namespace Mono.PkgConfig
 			
 			TP pinfo = new TP ();
 			pinfo.Name = Path.GetFileNameWithoutExtension (file.FilePath);
+			Console.WriteLine ("Has errors: " + file.HasErrors);
 			
 			if (!file.HasErrors) {
 				pinfo.Version = file.Version;
 				pinfo.Description = file.Description;
 				pinfo.Requires = file.Requires;
 				ParsePackageInfo (file, pinfo);
+				Console.WriteLine ("Valid: " + pinfo.IsValidPackage);
+				Console.WriteLine ("CTX: " + ctx);
 				if (pinfo.IsValidPackage)
 					ctx.StoreCustomData (file, pinfo);
 			}
