@@ -82,8 +82,8 @@ namespace Mono.PkgConfig
 					Directory.CreateDirectory (path);
 				cacheFile = Path.Combine (path, "pkgconfig-cache-" + CACHE_VERSION + ".xml");
 				
-				if (File.Exists (cacheFile))
-					Load ();
+			//	if (File.Exists (cacheFile))
+			//		Load ();
 				
 			} catch (Exception ex) {
 				ctx.ReportError ("pc file cache could not be loaded.", ex);
