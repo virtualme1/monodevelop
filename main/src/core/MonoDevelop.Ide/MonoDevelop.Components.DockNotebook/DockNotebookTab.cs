@@ -68,6 +68,9 @@ namespace MonoDevelop.Components.DockNotebook
 			}
 		}
 
+		bool isPreview;
+		internal bool IsPreview => isPreview;
+
 		Cairo.Rectangle closeButtonActiveArea;
 		internal Cairo.Rectangle CloseButtonActiveArea {
 			get {
@@ -196,6 +199,8 @@ namespace MonoDevelop.Components.DockNotebook
 			set {
 				content = value;
 				notebook.ShowContent (this);
+				isPreview = (Content as Ide.Gui.SdiWorkspaceWindow)?.ViewContent.IsPreview ?? false;
+				ContentChanged?.Invoke (this, EventArgs.Empty);
 			}
 		}
 
@@ -245,6 +250,7 @@ namespace MonoDevelop.Components.DockNotebook
 			strip.QueueDraw ();
 		}
 
+		internal event EventHandler ContentChanged;
 		internal event EventHandler AccessibilityPressTab;
 		internal event EventHandler AccessibilityPressCloseButton;
 		internal event EventHandler AccessibilityShowMenu;

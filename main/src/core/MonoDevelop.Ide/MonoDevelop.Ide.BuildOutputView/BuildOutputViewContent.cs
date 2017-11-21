@@ -48,6 +48,8 @@ namespace MonoDevelop.Ide.BuildOutputView
 			control = new BuildOutputWidget (buildOutput);
 		}
 
+		public override bool IsPreview => true;
+
 		public override Control Control {
 			get {
 				return control;
