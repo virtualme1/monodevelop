@@ -68,7 +68,8 @@ namespace MonoDevelop.Components.DockNotebook
 			}
 		}
 
-		internal bool IsPreview => (Content as Ide.Gui.SdiWorkspaceWindow)?.ViewContent is MonoDevelop.Ide.Gui.Components.BuildOutputViewContent;
+		bool isPreview;
+		internal bool IsPreview => isPreview;
 
 		Cairo.Rectangle closeButtonActiveArea;
 		internal Cairo.Rectangle CloseButtonActiveArea {
@@ -198,6 +199,7 @@ namespace MonoDevelop.Components.DockNotebook
 			set {
 				content = value;
 				notebook.ShowContent (this);
+				isPreview = (Content as Ide.Gui.SdiWorkspaceWindow)?.ViewContent is MonoDevelop.Ide.Gui.Components.BuildOutputViewContent;
 				ContentChanged?.Invoke (this, EventArgs.Empty);
 			}
 		}
